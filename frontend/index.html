@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Churn Prediction AI</title>
+
+<style>
+:root {
+  --accent:#7c7cff;
+  --text:#e5e7eb;
+  --muted:#9ca3af;
+  --danger:#ff4d4d;
+  --success:#22c55e;
+}
+
+* {
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Inter,system-ui,sans-serif;
+}
+
+body {
+  background:radial-gradient(circle at top,#12172a,#06080f);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  color:var(--text);
+}
+
+.container {
+  width:100%;
+  max-width:420px;
+  background:#0b0f19;
+  border-radius:18px;
+  padding:25px;
+  box-shadow:0 0 40px rgba(124,124,255,.25);
+}
+
+h1 { text-align:center; }
+.subtitle {
+  text-align:center;
+  color:var(--muted);
+  margin-bottom:20px;
+}
+
+input,select {
+  width:100%;
+  padding:12px;
+  margin-bottom:12px;
+  background:#0f1425;
+  border:1px solid #1f2a44;
+  border-radius:10px;
+  color:var(--text);
+}
+
+input[type=range]{ padding:0 }
+
+button {
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(135deg,var(--accent),#5f5fff);
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.tabs {
+  display:flex;
+  margin-bottom:20px;
+}
+
+.tab {
+  flex:1;
+  padding:10px;
+  background:#0f1425;
+  border-radius:10px;
+  margin:0 5px;
+  text-align:center;
+  cursor:pointer;
+  color:var(--muted);
+}
+
+.tab.active {
+  background:var(--accent);
+  color:white;
+}
+
+#userBar {
+  display:none;
+  text-align:center;
+  margin-bottom:15px;
+}
+
+#userBar button {
+  background:var(--danger);
+}
+
+.slider {
+  margin-bottom:14px;
+}
+.slider label {
+  display:flex;
+  justify-content:space-between;
+  font-size:.85rem;
+  color:var(--muted);
+}
+
+.result {
+  display:none;
+  margin-top:15px;
+  padding:15px;
+  background:#0f1425;
+  border-radius:12px;
+  text-align:center;
+}
+
+.success{color:var(--success)}
+.danger{color:var(--danger)}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Churn Prediction AI⚡</h1>
+<p class="subtitle">JWT Secured Prediction Engine</p>
+
+<!-- USER BAR -->
+<div id="userBar">
+  <p>👋 Logged in as <b id="loggedUser"></b></p>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<!-- TABS -->
+<div class="tabs" id="authTabs">
+  <div class="tab active" onclick="showAuth('login',this)">Login</div>
+  <div class="tab" onclick="showAuth('register',this)">Register</div>
+</div>
+
+<!-- AUTH BOX -->
+<div id="authBox">
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="handleAuth()">Continue</button>
+</div>
+
+<!-- PREDICTION -->
+<div id="predictBox" style="display:none">
+
+  <select id="Gender"><option>Male</option><option>Female</option></select>
+
+  <div class="slider">
+    <label>Age(years)<span id="ageVal">30</span></label>
+    <input type="range" id="Age" min="18" max="100" value="30"
+      oninput="ageVal.innerText=this.value">
+  </div>
+
+  <div class="slider">
+    <label>Tenure(months)<span id="tenureVal">12</span></label>
+    <input type="range" id="Tenure" min="0" max="100" value="12"
+      oninput="tenureVal.innerText=this.value">
+  </div>
+
+  <div class="slider">
+    <label>Services <span id="serviceVal">3</span></label>
+    <input type="range" id="Services_Subscribed" min="0" max="10" value="3"
+      oninput="serviceVal.innerText=this.value">
+  </div>
+
+  <select id="Contract_Type">
+    <option>Month-To-Month</option>
+    <option>One Year</option>
+    <option>Two Year</option>
+  </select>
+
+  <div class="slider">
+    <label>Monthly (₹/month)<span id="monthlyVal">70</span></label>
+    <input type="range" id="MonthlyCharges" min="10" max="150" value="70"
+      oninput="monthlyVal.innerText=this.value">
+  </div>
+
+  <div class="slider">
+    <label>Total (₹ till date)<span id="totalVal">500</span></label>
+    <input type="range" id="TotalCharges" min="0" max="8000" step="50" value="500"
+      oninput="totalVal.innerText=this.value">
+  </div>
+
+  <select id="TechSupport"><option>Yes</option><option>No</option></select>
+  <select id="OnlineSecurity"><option>Yes</option><option>No</option></select>
+  <select id="InternetService">
+    <option>DSL</option>
+    <option>Fiber optic</option>
+    <option>No</option>
+  </select>
+
+  <button onclick="predict()">Predict</button>
+  <div class="result" id="result"></div>
+</div>
+
+</div>
+
+<script>
+const tabs=document.querySelectorAll(".tab");
+let mode="login";
+
+function showAuth(type,el){
+  mode=type;
+  tabs.forEach(t=>t.classList.remove("active"));
+  el.classList.add("active");
+}
+
+function getUsernameFromToken(token){
+  try{return JSON.parse(atob(token.split(".")[1])).sub;}
+  catch{return null;}
+}
+
+function showLoggedInUI(username){
+  authBox.style.display="none";
+  authTabs.style.display="none";
+  userBar.style.display="block";
+  loggedUser.innerText=username;
+  predictBox.style.display="block";
+}
+
+function logout(){
+  localStorage.removeItem("token");
+  userBar.style.display="none";
+  predictBox.style.display="none";
+  authBox.style.display="block";
+  authTabs.style.display="flex";
+}
+
+async function handleAuth(){
+  const username=document.getElementById("username").value.trim();
+  const password=document.getElementById("password").value.trim();
+  if(!username||!password) return alert("Username & Password required");
+
+  const res=await fetch(`/auth/${mode}`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({username,password})
+  });
+
+  const data=await res.json();
+  if(!res.ok) return alert(data.detail);
+
+  localStorage.setItem("token",data.access_token);
+  showLoggedInUI(getUsernameFromToken(data.access_token));
+}
+
+async function predict(){
+  const token=localStorage.getItem("token");
+
+  const payload={
+    Gender:Gender.value,
+    Age:+Age.value,
+    Tenure:+Tenure.value,
+    Services_Subscribed:+Services_Subscribed.value,
+    Contract_Type:Contract_Type.value,
+    MonthlyCharges:+MonthlyCharges.value,
+    TotalCharges:+TotalCharges.value,
+    TechSupport:TechSupport.value,
+    OnlineSecurity:OnlineSecurity.value,
+    InternetService:InternetService.value
+  };
+
+  const res=await fetch(`/predict`,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":`Bearer ${token}`
+    },
+    body:JSON.stringify(payload)
+  });
+
+  const data=await res.json();
+  result.style.display="block";
+  result.innerHTML=`
+    <h3 class="${data.churn_prediction?'danger':'success'}">
+      ${data.churn_label}
+    </h3>
+    <p>Probability: ${data.churn_probability?.toFixed(3)}</p>
+  `;
+}
+
+window.onload=()=>{
+  const token=localStorage.getItem("token");
+  if(token) showLoggedInUI(getUsernameFromToken(token));
+};
+</script>
+
+</body>
+</html>
